@@ -1,0 +1,127 @@
+# 用友做账MCP服务器 Docker Compose配置
+# 支持多种部署场景
+
+version: '3.8'
+
+# ============================================
+# 服务定义
+# ============================================
+services:
+  # MCP服务器主服务
+  yonyou-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: yonyou-mcp:latest
+    container_name: yonyou-mcp-server
+    restart: unless-stopped
+    
+    # 环境变量配置
+    environment:
+      # Node.js环境
+      - NODE_ENV=production
+      
+      # 用友API配置（从.env文件读取）
+      - YONYOU_API_BASE_URL=${YONYOU_API_BASE_URL}
+      - YONYOU_APP_KEY=${YONYOU_APP_KEY}
+      - YONYOU_APP_SECRET=${YONYOU_APP_SECRET}
+      - YONYOU_TENANT_ID=${YONYOU_TENANT_ID}
+      - YONYOU_USER_ID=${YONYOU_USER_ID}
+      - YONYOU_DATA_CENTER_DOMAIN=${YONYOU_DATA_CENTER_DOMAIN}
+      
+      # 认证配置
+      - YONYOU_AUTH_TYPE=${YONYOU_AUTH_TYPE:-app_auth}
+      - YONYOU_TOKEN_CACHE_TTL=${YONYOU_TOKEN_CACHE_TTL:-7200}
+      
+      # 签名配置
+      - YONYOU_SIGNATURE_ALGORITHM=${YONYOU_SIGNATURE_ALGORITHM:-SHA256}
+      - YONYOU_SIGNATURE_VERSION=${YONYOU_SIGNATURE_VERSION:-v1}
+      
+      # 日志配置
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+      - LOG_FILE_PATH=/app/logs/yonyou-mcp.log
+      
+      # MCP服务器配置
+      - MCP_SERVER_NAME=${MCP_SERVER_NAME:-yonyou-mcp}
+      - MCP_SERVER_VERSION=${MCP_SERVER_VERSION:-1.0.0}
+      - MCP_TRANSPORT_TYPE=${MCP_TRANSPORT_TYPE:-stdio}
+      
+      # 网络配置
+      - HTTP_TIMEOUT=${HTTP_TIMEOUT:-30000}
+      - HTTP_MAX_RETRIES=${HTTP_MAX_RETRIES:-3}
+      - HTTP_RETRY_DELAY=${HTTP_RETRY_DELAY:-1000}
+      
+      # 业务配置
+      - DEFAULT_ACCOUNT_BOOK=${DEFAULT_ACCOUNT_BOOK}
+      - DEFAULT_CURRENCY=${DEFAULT_CURRENCY:-CNY}
+      - DEFAULT_VOUCHER_TYPE=${DEFAULT_VOUCHER_TYPE:-记-1}
+      
+      # 缓存配置
+      - CACHE_ENABLED=${CACHE_ENABLED:-true}
+      - CACHE_TTL=${CACHE_TTL:-3600}
+      - CACHE_MAX_SIZE=${CACHE_MAX_SIZE:-1000}
+      
+      # 安全配置
+      - ENABLE_REQUEST_SIGNATURE=${ENABLE_REQUEST_SIGNATURE:-true}
+      - ENABLE_RESPONSE_VALIDATION=${ENABLE_RESPONSE_VALIDATION:-true}
+    
+    # 卷挂载
+    volumes:
+      # 日志持久化
+      - ./logs:/app/logs
+      # 配置文件（可选）
+      # - ./config:/app/config:ro
+    
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+    
+    # 网络配置
+    networks:
+      - yonyou-network
+    
+    # 安全配置
+    security_opt:
+      - no-new-privileges:true
+    read_only: false
+    stdin_open: true
+    tty: false
+
+# ============================================
+# 网络定义
+# ============================================
+networks:
+  yonyou-network:
+    driver: bridge
+    name: yonyou-mcp-network
+
+# ============================================
+# 卷定义
+# ============================================
+volumes:
+  logs:
+    driver: local
+    name: yonyou-mcp-logs

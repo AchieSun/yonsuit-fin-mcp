@@ -1,0 +1,79 @@
+# Docker构建忽略文件
+# 减少构建上下文大小，加快构建速度
+
+# 依赖目录
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 构建输出（会在构建时重新生成）
+dist
+build
+*.tsbuildinfo
+
+# 环境配置（敏感信息）
+.env
+.env.local
+.env.*.local
+
+# 日志文件
+logs
+*.log
+
+# 测试相关
+tests
+coverage
+.nyc_output
+*.test.ts
+*.spec.ts
+jest.config.js
+
+# IDE和编辑器
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Docker相关
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+.docker
+.dockerignore
+
+# 文档
+docs
+*.md
+!README.md
+CHANGELOG.md
+LICENSE
+
+# 配置文件（非必需）
+.eslintrc*
+.prettierrc*
+tsconfig.json
+tsconfig.build.json
+jest.config.js
+.editorconfig
+
+# 临时文件
+tmp
+temp
+*.tmp
+*.temp
+
+# 操作系统文件
+.DS_Store
+Thumbs.db
+
+# 其他
+.github
+.gitlab-ci.yml
+.travis.yml
