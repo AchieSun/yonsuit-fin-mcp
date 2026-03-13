@@ -264,12 +264,27 @@ export class CustomArchiveTools {
     try {
       logger.info('查询部门档案列表', { params });
 
-      const response = await this.client.post<PageResponse<CustomArchive>>(
+      const requestBody: Record<string, unknown> = {
+        pageIndex: params.pageNum || 1,
+        pageSize: params.pageSize || 20,
+        custdocdefid___code: 'bd_deptdoc',
+      };
+
+      if (params.code) {
+        requestBody.code = params.code;
+      }
+
+      if (params.name) {
+        requestBody.name = params.name;
+      }
+
+      if (params.enabled !== undefined) {
+        requestBody.enable = params.enabled ? 1 : 0;
+      }
+
+      const response = await this.client.post<{ code: string; message: string; data: { recordList: CustomArchive[]; recordCount: number } }>(
         '/yonbip/digitalModel/customerdoc/batchQueryDetail',
-        {
-          ...params,
-          docType: 'bd_deptdoc',
-        } as Record<string, unknown>
+        requestBody as Record<string, unknown>
       );
 
       const content: MCPContent[] = [
@@ -279,7 +294,10 @@ export class CustomArchiveTools {
             {
               success: true,
               message: '查询部门档案列表成功',
-              data: response,
+              data: {
+                list: response.data?.recordList || [],
+                total: response.data?.recordCount || 0,
+              },
             },
             null,
             2
@@ -314,12 +332,27 @@ export class CustomArchiveTools {
     try {
       logger.info('查询供应商档案列表', { params });
 
-      const response = await this.client.post<PageResponse<CustomArchive>>(
+      const requestBody: Record<string, unknown> = {
+        pageIndex: params.pageNum || 1,
+        pageSize: params.pageSize || 20,
+        custdocdefid___code: 'bd_supplier',
+      };
+
+      if (params.code) {
+        requestBody.code = params.code;
+      }
+
+      if (params.name) {
+        requestBody.name = params.name;
+      }
+
+      if (params.enabled !== undefined) {
+        requestBody.enable = params.enabled ? 1 : 0;
+      }
+
+      const response = await this.client.post<{ code: string; message: string; data: { recordList: CustomArchive[]; recordCount: number } }>(
         '/yonbip/digitalModel/customerdoc/batchQueryDetail',
-        {
-          ...params,
-          docType: 'bd_supplier',
-        } as Record<string, unknown>
+        requestBody as Record<string, unknown>
       );
 
       const content: MCPContent[] = [
@@ -329,7 +362,10 @@ export class CustomArchiveTools {
             {
               success: true,
               message: '查询供应商档案列表成功',
-              data: response,
+              data: {
+                list: response.data?.recordList || [],
+                total: response.data?.recordCount || 0,
+              },
             },
             null,
             2
@@ -364,12 +400,27 @@ export class CustomArchiveTools {
     try {
       logger.info('查询客户档案列表', { params });
 
-      const response = await this.client.post<PageResponse<CustomArchive>>(
+      const requestBody: Record<string, unknown> = {
+        pageIndex: params.pageNum || 1,
+        pageSize: params.pageSize || 20,
+        custdocdefid___code: 'bd_customer',
+      };
+
+      if (params.code) {
+        requestBody.code = params.code;
+      }
+
+      if (params.name) {
+        requestBody.name = params.name;
+      }
+
+      if (params.enabled !== undefined) {
+        requestBody.enable = params.enabled ? 1 : 0;
+      }
+
+      const response = await this.client.post<{ code: string; message: string; data: { recordList: CustomArchive[]; recordCount: number } }>(
         '/yonbip/digitalModel/customerdoc/batchQueryDetail',
-        {
-          ...params,
-          docType: 'bd_customer',
-        } as Record<string, unknown>
+        requestBody as Record<string, unknown>
       );
 
       const content: MCPContent[] = [
@@ -379,7 +430,10 @@ export class CustomArchiveTools {
             {
               success: true,
               message: '查询客户档案列表成功',
-              data: response,
+              data: {
+                list: response.data?.recordList || [],
+                total: response.data?.recordCount || 0,
+              },
             },
             null,
             2
@@ -414,12 +468,27 @@ export class CustomArchiveTools {
     try {
       logger.info('查询项目档案列表', { params });
 
-      const response = await this.client.post<PageResponse<CustomArchive>>(
+      const requestBody: Record<string, unknown> = {
+        pageIndex: params.pageNum || 1,
+        pageSize: params.pageSize || 20,
+        custdocdefid___code: 'bd_project',
+      };
+
+      if (params.code) {
+        requestBody.code = params.code;
+      }
+
+      if (params.name) {
+        requestBody.name = params.name;
+      }
+
+      if (params.enabled !== undefined) {
+        requestBody.enable = params.enabled ? 1 : 0;
+      }
+
+      const response = await this.client.post<{ code: string; message: string; data: { recordList: CustomArchive[]; recordCount: number } }>(
         '/yonbip/digitalModel/customerdoc/batchQueryDetail',
-        {
-          ...params,
-          docType: 'bd_project',
-        } as Record<string, unknown>
+        requestBody as Record<string, unknown>
       );
 
       const content: MCPContent[] = [
@@ -429,7 +498,10 @@ export class CustomArchiveTools {
             {
               success: true,
               message: '查询项目档案列表成功',
-              data: response,
+              data: {
+                list: response.data?.recordList || [],
+                total: response.data?.recordCount || 0,
+              },
             },
             null,
             2
@@ -464,12 +536,31 @@ export class CustomArchiveTools {
     try {
       logger.info('查询人员档案列表', { params });
 
-      const response = await this.client.post<PageResponse<CustomArchive>>(
+      const requestBody: Record<string, unknown> = {
+        pageIndex: params.pageNum || 1,
+        pageSize: params.pageSize || 20,
+        custdocdefid___code: 'bd_psndoc',
+      };
+
+      if (params.code) {
+        requestBody.code = params.code;
+      }
+
+      if (params.name) {
+        requestBody.name = params.name;
+      }
+
+      if (params.departmentCode) {
+        requestBody.departmentCode = params.departmentCode;
+      }
+
+      if (params.enabled !== undefined) {
+        requestBody.enable = params.enabled ? 1 : 0;
+      }
+
+      const response = await this.client.post<{ code: string; message: string; data: { recordList: CustomArchive[]; recordCount: number } }>(
         '/yonbip/digitalModel/customerdoc/batchQueryDetail',
-        {
-          ...params,
-          docType: 'bd_psndoc',
-        } as Record<string, unknown>
+        requestBody as Record<string, unknown>
       );
 
       const content: MCPContent[] = [
@@ -479,7 +570,10 @@ export class CustomArchiveTools {
             {
               success: true,
               message: '查询人员档案列表成功',
-              data: response,
+              data: {
+                list: response.data?.recordList || [],
+                total: response.data?.recordCount || 0,
+              },
             },
             null,
             2

@@ -64,3 +64,7 @@ docker-compose.yml
 
 # Temporary test files
 test-*.ts
+test-*.js
+
+# Cache directory
+.yonyou-mcp/

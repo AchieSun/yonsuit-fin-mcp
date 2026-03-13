@@ -14,6 +14,7 @@ import { logger } from '../utils';
 import { appConfig } from '../config';
 import { authManager } from '../auth';
 import { signatureGenerator } from '../signature';
+import { dataCenterService } from '../services';
 import { API_PATHS, HTTP_HEADERS } from '../config/constants';
 import { BaseClient } from './base-client';
 import type { RequestConfig } from './types';
@@ -57,6 +58,12 @@ import type { PaginationParams } from '../types/common';
 export class YonyouClient extends BaseClient {
   /** Axios实例（用于特殊场景） */
   private client: AxiosInstance;
+  /** 网关URL */
+  private gatewayUrl: string | null = null;
+  /** 是否已初始化 */
+  private initialized: boolean = false;
+  /** 初始化Promise */
+  private initPromise: Promise<void> | null = null;
 
   constructor() {
     super();
@@ -85,7 +92,10 @@ export class YonyouClient extends BaseClient {
         // 跳过认证
         if (!customConfig.skipAuth) {
           const token = await authManager.getAccessToken();
-          config.headers.Authorization = `Bearer ${token}`;
+          // 用友API要求access_token作为URL参数传递，不是在header中
+          // 参考：调用接口.md
+          const separator = config.url?.includes('?') ? '&' : '?';
+          config.url = `${config.url}${separator}access_token=${encodeURIComponent(token)}`;
         }
 
         // 添加租户信息
@@ -112,12 +122,52 @@ export class YonyouClient extends BaseClient {
     );
   }
 
+  /**
+   * 初始化客户端
+   * 确保域名验证完成并设置正确的网关URL
+   */
+  private async initialize(): Promise<void> {
+    if (this.initialized) return;
+
+    if (this.initPromise) {
+      return this.initPromise;
+    }
+
+    this.initPromise = this.doInitialize();
+    return this.initPromise;
+  }
+
+  /**
+   * 执行初始化
+   */
+  private async doInitialize(): Promise<void> {
+    try {
+      // 1. 获取域名
+      const tenantId = appConfig.yonyou.tenantId;
+      const result = await dataCenterService.ensureDomainValid(tenantId);
+      this.gatewayUrl = result.gatewayUrl;
+
+      // 2. 更新 axios 实例的 baseURL
+      if (this.gatewayUrl) {
+        this.client.defaults.baseURL = this.gatewayUrl;
+      }
+
+      this.initialized = true;
+      logger.info('YonyouClient 初始化完成', { gatewayUrl: this.gatewayUrl });
+    } catch (error) {
+      this.initPromise = null;
+      logger.error('YonyouClient 初始化失败', error);
+      throw error;
+    }
+  }
+
   // ==================== 凭证管理API ====================
 
   /**
    * 创建凭证
    */
   async createVoucher(data: VoucherCreateRequest): Promise<VoucherDetailResponse> {
+    await this.initialize();
     logger.info('创建凭证', { voucherDate: data.voucherDate, entries: data.entries.length });
     return this.post<VoucherDetailResponse>(API_PATHS.VOUCHER_SAVE, data as unknown as Record<string, unknown>);
   }
@@ -126,6 +176,7 @@ export class YonyouClient extends BaseClient {
    * 更新凭证
    */
   async updateVoucher(data: VoucherUpdateRequest): Promise<VoucherDetailResponse> {
+    await this.initialize();
     logger.info('更新凭证', { id: data.id, voucherNo: data.voucherNo });
     return this.put<VoucherDetailResponse>(API_PATHS.VOUCHER_SAVE, data as unknown as Record<string, unknown>);
   }
@@ -134,6 +185,7 @@ export class YonyouClient extends BaseClient {
    * 删除凭证
    */
   async deleteVoucher(ids: string[], reason?: string): Promise<void> {
+    await this.initialize();
     logger.info('删除凭证', { ids, reason });
     await this.post(API_PATHS.VOUCHER_DELETE, { ids, reason });
   }
@@ -142,6 +194,7 @@ export class YonyouClient extends BaseClient {
    * 获取凭证详情
    */
   async getVoucherDetail(id: string): Promise<VoucherDetailResponse> {
+    await this.initialize();
     logger.debug('获取凭证详情', { id });
     return this.get<VoucherDetailResponse>(API_PATHS.VOUCHER_DETAIL, { id });
   }
@@ -153,6 +206,7 @@ export class YonyouClient extends BaseClient {
     params: VoucherQueryParams,
     pagination?: PaginationParams
   ): Promise<VoucherListResponse> {
+    await this.initialize();
     logger.debug('查询凭证列表', { params, pagination });
     const queryParams = {
       ...params,
@@ -165,6 +219,7 @@ export class YonyouClient extends BaseClient {
    * 凭证审核
    */
   async auditVoucher(data: VoucherAuditRequest): Promise<void> {
+    await this.initialize();
     logger.info('凭证审核', { ids: data.ids, auditor: data.auditor });
     await this.post(API_PATHS.VOUCHER_AUDIT, data as unknown as Record<string, unknown>);
   }
@@ -173,6 +228,7 @@ export class YonyouClient extends BaseClient {
    * 凭证反审核
    */
   async unauditVoucher(data: VoucherUnauditRequest): Promise<void> {
+    await this.initialize();
     logger.info('凭证反审核', { ids: data.ids, operator: data.operator });
     await this.post(API_PATHS.VOUCHER_UNAUDIT, data as unknown as Record<string, unknown>);
   }
@@ -181,6 +237,7 @@ export class YonyouClient extends BaseClient {
    * 凭证记账
    */
   async postVoucher(data: VoucherPostRequest): Promise<void> {
+    await this.initialize();
     logger.info('凭证记账', { ids: data.ids, poster: data.poster });
     await this.post(API_PATHS.VOUCHER_POST, data as unknown as Record<string, unknown>);
   }
@@ -189,6 +246,7 @@ export class YonyouClient extends BaseClient {
    * 凭证反记账
    */
   async unpostVoucher(data: VoucherUnpostRequest): Promise<void> {
+    await this.initialize();
     logger.info('凭证反记账', { ids: data.ids, operator: data.operator });
     await this.post(API_PATHS.VOUCHER_UNAUDIT, data as unknown as Record<string, unknown>);
   }
@@ -197,6 +255,7 @@ export class YonyouClient extends BaseClient {
    * 凭证作废
    */
   async voidVoucher(data: VoucherVoidRequest): Promise<void> {
+    await this.initialize();
     logger.info('凭证作废', { id: data.id, reason: data.reason });
     await this.post('/yonbip/fi/voucher/void', data as unknown as Record<string, unknown>);
   }
@@ -205,6 +264,7 @@ export class YonyouClient extends BaseClient {
    * 凭证试算平衡检查
    */
   async checkVoucherBalance(data: VoucherCreateRequest): Promise<VoucherBalanceCheck> {
+    await this.initialize();
     logger.debug('凭证试算平衡检查', { entries: data.entries.length });
     return this.post<VoucherBalanceCheck>('/yonbip/fi/voucher/balance-check', data as unknown as Record<string, unknown>);
   }
@@ -213,6 +273,7 @@ export class YonyouClient extends BaseClient {
    * 凭证导入
    */
   async importVouchers(data: VoucherImportRequest): Promise<VoucherImportResult> {
+    await this.initialize();
     logger.info('凭证导入', { total: data.data.length, mode: data.mode });
     return this.post<VoucherImportResult>('/yonbip/fi/voucher/import', data as unknown as Record<string, unknown>);
   }
@@ -221,6 +282,7 @@ export class YonyouClient extends BaseClient {
    * 凭证导出
    */
   async exportVouchers(data: VoucherExportRequest): Promise<VoucherExportResult> {
+    await this.initialize();
     logger.info('凭证导出', { format: data.format });
     return this.post<VoucherExportResult>('/yonbip/fi/voucher/export', data as unknown as Record<string, unknown>);
   }
@@ -236,6 +298,7 @@ export class YonyouClient extends BaseClient {
     category?: string;
     enabled?: boolean;
   }): Promise<Account[]> {
+    await this.initialize();
     logger.debug('获取科目列表', { params });
     return this.get<Account[]>(API_PATHS.ACCOUNT_LIST, params as unknown as Record<string, unknown>);
   }
@@ -244,6 +307,7 @@ export class YonyouClient extends BaseClient {
    * 获取科目详情
    */
   async getAccountDetail(code: string): Promise<Account> {
+    await this.initialize();
     logger.debug('获取科目详情', { code });
     return this.get<Account>(API_PATHS.ACCOUNT_DETAIL, { code });
   }
@@ -252,6 +316,7 @@ export class YonyouClient extends BaseClient {
    * 创建科目
    */
   async createAccount(data: Partial<Account>): Promise<Account> {
+    await this.initialize();
     logger.info('创建科目', { code: data.code, name: data.name });
     return this.post<Account>(API_PATHS.ACCOUNT_CREATE, data as unknown as Record<string, unknown>);
   }
@@ -260,6 +325,7 @@ export class YonyouClient extends BaseClient {
    * 更新科目
    */
   async updateAccount(code: string, data: Partial<Account>): Promise<Account> {
+    await this.initialize();
     logger.info('更新科目', { code, name: data.name });
     return this.put<Account>(API_PATHS.ACCOUNT_UPDATE, { code, ...data } as unknown as Record<string, unknown>);
   }
@@ -272,6 +338,7 @@ export class YonyouClient extends BaseClient {
     name?: string;
     enabled?: boolean;
   }): Promise<CustomArchive[]> {
+    await this.initialize();
     logger.debug('获取部门档案列表', { params });
     return this.get<CustomArchive[]>(API_PATHS.DEPARTMENT_LIST, params as unknown as Record<string, unknown>);
   }
@@ -280,6 +347,7 @@ export class YonyouClient extends BaseClient {
    * 获取部门档案详情
    */
   async getDepartmentDetail(code: string): Promise<CustomArchive> {
+    await this.initialize();
     logger.debug('获取部门档案详情', { code });
     return this.get<CustomArchive>(API_PATHS.DEPARTMENT_DETAIL, { code });
   }
@@ -288,6 +356,7 @@ export class YonyouClient extends BaseClient {
    * 创建部门档案
    */
   async createDepartment(data: Partial<CustomArchive>): Promise<CustomArchive> {
+    await this.initialize();
     logger.info('创建部门档案', { code: data.code, name: data.name });
     return this.post<CustomArchive>(API_PATHS.DEPARTMENT_CREATE, data as unknown as Record<string, unknown>);
   }
@@ -300,6 +369,7 @@ export class YonyouClient extends BaseClient {
     name?: string;
     enabled?: boolean;
   }): Promise<CustomArchive[]> {
+    await this.initialize();
     logger.debug('获取供应商档案列表', { params });
     return this.get<CustomArchive[]>(API_PATHS.SUPPLIER_LIST, params as unknown as Record<string, unknown>);
   }
@@ -312,6 +382,7 @@ export class YonyouClient extends BaseClient {
     name?: string;
     enabled?: boolean;
   }): Promise<CustomArchive[]> {
+    await this.initialize();
     logger.debug('获取客户档案列表', { params });
     return this.get<CustomArchive[]>(API_PATHS.CUSTOMER_LIST, params as unknown as Record<string, unknown>);
   }
@@ -324,6 +395,7 @@ export class YonyouClient extends BaseClient {
     name?: string;
     enabled?: boolean;
   }): Promise<CustomArchive[]> {
+    await this.initialize();
     logger.debug('获取项目档案列表', { params });
     return this.get<CustomArchive[]>(API_PATHS.PROJECT_LIST, params as unknown as Record<string, unknown>);
   }
@@ -337,6 +409,7 @@ export class YonyouClient extends BaseClient {
     departmentCode?: string;
     enabled?: boolean;
   }): Promise<CustomArchive[]> {
+    await this.initialize();
     logger.debug('获取人员档案列表', { params });
     return this.get<CustomArchive[]>(API_PATHS.PERSONNEL_LIST, params as unknown as Record<string, unknown>);
   }
@@ -345,6 +418,7 @@ export class YonyouClient extends BaseClient {
    * 获取结算方式列表
    */
   async getSettlementList(): Promise<CustomArchive[]> {
+    await this.initialize();
     logger.debug('获取结算方式列表');
     return this.get<CustomArchive[]>(API_PATHS.SETTLEMENT_LIST);
   }
@@ -353,6 +427,7 @@ export class YonyouClient extends BaseClient {
    * 获取币种列表
    */
   async getCurrencyList(): Promise<Currency[]> {
+    await this.initialize();
     logger.debug('获取币种列表');
     return this.get<Currency[]>(API_PATHS.CURRENCY_LIST);
   }
@@ -361,6 +436,7 @@ export class YonyouClient extends BaseClient {
    * 获取凭证类型列表
    */
   async getVoucherTypeList(): Promise<VoucherType[]> {
+    await this.initialize();
     logger.debug('获取凭证类型列表');
     return this.get<VoucherType[]>('/yonbip/fi/vouchertype/list');
   }
@@ -376,6 +452,7 @@ export class YonyouClient extends BaseClient {
     fiscalYear?: number;
     enabled?: boolean;
   }): Promise<AccountBook[]> {
+    await this.initialize();
     logger.debug('获取账簿列表', { params });
     return this.get<AccountBook[]>(API_PATHS.ACCOUNT_BOOK_LIST, params as unknown as Record<string, unknown>);
   }
@@ -384,6 +461,7 @@ export class YonyouClient extends BaseClient {
    * 获取账簿详情
    */
   async getAccountBookDetail(code: string): Promise<AccountBook> {
+    await this.initialize();
     logger.debug('获取账簿详情', { code });
     return this.get<AccountBook>(API_PATHS.ACCOUNT_BOOK_DETAIL, { code });
   }
@@ -397,6 +475,7 @@ export class YonyouClient extends BaseClient {
     periodStart: string;
     periodEnd: string;
   }): Promise<unknown[]> {
+    await this.initialize();
     logger.debug('查询总账', { params });
     return this.get(API_PATHS.GENERAL_LEDGER, params as unknown as Record<string, unknown>);
   }
@@ -410,6 +489,7 @@ export class YonyouClient extends BaseClient {
     periodStart: string;
     periodEnd: string;
   }): Promise<unknown[]> {
+    await this.initialize();
     logger.debug('查询明细账', { params });
     return this.get(API_PATHS.DETAIL_LEDGER, params as unknown as Record<string, unknown>);
   }
@@ -422,6 +502,7 @@ export class YonyouClient extends BaseClient {
     accountCode?: string;
     period: string;
   }): Promise<unknown[]> {
+    await this.initialize();
     logger.debug('查询余额表', { params });
     return this.get(API_PATHS.BALANCE_SHEET, params as unknown as Record<string, unknown>);
   }
@@ -432,6 +513,7 @@ export class YonyouClient extends BaseClient {
    * 获取当前会计期间
    */
   async getCurrentPeriod(accountBookCode?: string): Promise<PeriodStatus> {
+    await this.initialize();
     logger.debug('获取当前会计期间', { accountBookCode });
     return this.get<PeriodStatus>(API_PATHS.CURRENT_PERIOD, { accountBookCode });
   }
@@ -440,6 +522,7 @@ export class YonyouClient extends BaseClient {
    * 获取会计期间列表
    */
   async getPeriodList(fiscalYear?: number): Promise<PeriodStatus[]> {
+    await this.initialize();
     logger.debug('获取会计期间列表', { fiscalYear });
     return this.get<PeriodStatus[]>(API_PATHS.PERIOD_LIST, { fiscalYear });
   }
@@ -453,6 +536,7 @@ export class YonyouClient extends BaseClient {
     period: number;
     operator?: string;
   }): Promise<void> {
+    await this.initialize();
     logger.info('期末结账', data);
     await this.post(API_PATHS.PERIOD_CLOSE, data as unknown as Record<string, unknown>);
   }
@@ -467,6 +551,7 @@ export class YonyouClient extends BaseClient {
     operator?: string;
     reason?: string;
   }): Promise<void> {
+    await this.initialize();
     logger.info('反结账', data);
     await this.post(API_PATHS.PERIOD_REOPEN, data as unknown as Record<string, unknown>);
   }
@@ -481,6 +566,7 @@ export class YonyouClient extends BaseClient {
     carryoverType: 'income_expense' | 'profit' | 'custom';
     operator?: string;
   }): Promise<void> {
+    await this.initialize();
     logger.info('期末结转', data);
     await this.post(API_PATHS.PERIOD_CARRYOVER, data as unknown as Record<string, unknown>);
   }
@@ -495,6 +581,7 @@ export class YonyouClient extends BaseClient {
     currencyCode?: string;
     operator?: string;
   }): Promise<void> {
+    await this.initialize();
     logger.info('汇兑损益结转', data);
     await this.post(API_PATHS.EXCHANGE_GAIN_LOSS, data as unknown as Record<string, unknown>);
   }
@@ -508,6 +595,7 @@ export class YonyouClient extends BaseClient {
     accountBookCode: string;
     period: string;
   }): Promise<unknown> {
+    await this.initialize();
     logger.debug('获取资产负债表', { params });
     return this.get(API_PATHS.BALANCE_REPORT, params as unknown as Record<string, unknown>);
   }
@@ -520,6 +608,7 @@ export class YonyouClient extends BaseClient {
     periodStart: string;
     periodEnd: string;
   }): Promise<unknown> {
+    await this.initialize();
     logger.debug('获取利润表', { params });
     return this.get(API_PATHS.INCOME_REPORT, params as unknown as Record<string, unknown>);
   }
@@ -531,6 +620,7 @@ export class YonyouClient extends BaseClient {
     accountBookCode: string;
     fiscalYear: number;
   }): Promise<unknown> {
+    await this.initialize();
     logger.debug('获取现金流量表', { params });
     return this.get(API_PATHS.CASHFLOW_REPORT, params as unknown as Record<string, unknown>);
   }
@@ -542,6 +632,7 @@ export class YonyouClient extends BaseClient {
    */
   async healthCheck(): Promise<boolean> {
     try {
+      await this.initialize();
       await this.getCurrentPeriod();
       return true;
     } catch (error) {
@@ -554,7 +645,15 @@ export class YonyouClient extends BaseClient {
    * 获取API版本信息
    */
   async getApiVersion(): Promise<{ version: string; buildTime: string }> {
+    await this.initialize();
     return this.get('/yonbip/system/version');
+  }
+
+  /**
+   * 获取网关URL
+   */
+  getGatewayUrl(): string | null {
+    return this.gatewayUrl;
   }
 }
 

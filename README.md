@@ -43,7 +43,6 @@ cp .env.example .env
 YONYOU_APP_KEY=your_app_key_here
 YONYOU_APP_SECRET=your_app_secret_here
 YONYOU_TENANT_ID=your_tenant_id_here
-YONYOU_DATA_CENTER_DOMAIN=your_data_center_domain_here
 
 # 用户ID（可选）
 YONYOU_USER_ID=your_user_id_here
@@ -85,8 +84,7 @@ npm start
       "env": {
         "YONYOU_APP_KEY": "your_app_key",
         "YONYOU_APP_SECRET": "your_app_secret",
-        "YONYOU_TENANT_ID": "your_tenant_id",
-        "YONYOU_DATA_CENTER_DOMAIN": "your_domain"
+        "YONYOU_TENANT_ID": "your_tenant_id"
       }
     }
   }
@@ -264,20 +262,39 @@ npm run clean    # 清理构建产物
 | `YONYOU_APP_KEY` | 用友应用Key | `your_app_key` |
 | `YONYOU_APP_SECRET` | 用友应用Secret | `your_app_secret` |
 | `YONYOU_TENANT_ID` | 租户ID | `your_tenant_id` |
-| `YONYOU_DATA_CENTER_DOMAIN` | 数据中心域名 | `api.yonyoucloud.com` |
 
 ### 可选配置
 
 | 变量名 | 描述 | 默认值 |
 |-------|------|--------|
 | `YONYOU_USER_ID` | 用户ID | - |
-| `YONYOU_API_BASE_URL` | API基础URL | `https://api.yonyoucloud.com` |
 | `YONYOU_AUTH_TYPE` | 认证类型 | `app_auth` |
 | `YONYOU_TOKEN_CACHE_TTL` | Token缓存时间(秒) | `7200` |
 | `LOG_LEVEL` | 日志级别 | `info` |
 | `LOG_FORMAT` | 日志格式 | `json` |
 | `HTTP_TIMEOUT` | HTTP超时时间(ms) | `30000` |
 | `HTTP_MAX_RETRIES` | 最大重试次数 | `3` |
+
+### 域名自动获取机制
+
+系统会根据 `YONYOU_TENANT_ID` 自动获取用友数据中心的域名信息（包括 `gatewayUrl` 和 `tokenUrl`），无需手动配置。
+
+**域名缓存机制：**
+- 缓存文件路径：`~/.yonyou-mcp/cache/datacenter-{tenantId}.json`
+- 缓存有效期：7天
+- 缓存过期后会自动重新获取域名信息
+
+## 初始化流程
+
+每次调用MCP工具时，系统会自动执行以下验证流程：
+
+```
+域名存在性验证 -> Token过期验证 -> 业务请求
+```
+
+1. **域名存在性验证**：检查本地缓存中是否存在有效的域名信息，若不存在或已过期则自动从用友数据中心获取
+2. **Token过期验证**：检查Token是否有效，若过期则自动刷新
+3. **业务请求**：完成验证后执行实际的业务操作
 
 ## 文档
 

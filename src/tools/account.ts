@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { BaseClient } from '../client';
 import { MCPTool, MCPToolResult, MCPContent } from '../types';
 import { API_PATHS } from '../config/constants';
-import { AccountBook, PageResponse } from '../types/yonyou.types';
+import { AccountBook } from '../types/yonyou.types';
 import { logger } from '../utils';
 
 /**
@@ -101,9 +101,56 @@ export class AccountBookTools {
     try {
       logger.info('查询账簿列表', { params });
 
-      const response = await this.client.get<PageResponse<AccountBook>>(
-        API_PATHS.ACCOUNT_BOOK_LIST,
-        params as Record<string, unknown>
+      const requestBody = {
+        fields: ['id', 'code', 'name', 'ts'],
+        pageIndex: params.pageNum || 1,
+        pageSize: params.pageSize || 20,
+        conditions: [] as Array<{ field: string; operator: string; value: string | number | boolean }>,
+      };
+
+      if (params.code) {
+        requestBody.conditions.push({
+          field: 'code',
+          operator: 'like',
+          value: params.code,
+        });
+      }
+
+      if (params.name) {
+        requestBody.conditions.push({
+          field: 'name',
+          operator: 'like',
+          value: params.name,
+        });
+      }
+
+      if (params.type) {
+        requestBody.conditions.push({
+          field: 'type',
+          operator: '=',
+          value: params.type,
+        });
+      }
+
+      if (params.fiscalYear) {
+        requestBody.conditions.push({
+          field: 'fiscalYear',
+          operator: '=',
+          value: params.fiscalYear,
+        });
+      }
+
+      if (params.enabled !== undefined) {
+        requestBody.conditions.push({
+          field: 'enabled',
+          operator: '=',
+          value: params.enabled,
+        });
+      }
+
+      const response = await this.client.post<{ success: boolean; code: number; total: number; data: AccountBook[] }>(
+        API_PATHS.ACCOUNT_BOOK_QUERY,
+        requestBody as Record<string, unknown>
       );
 
       const content: MCPContent[] = [
@@ -113,7 +160,10 @@ export class AccountBookTools {
             {
               success: true,
               message: '查询账簿列表成功',
-              data: response,
+              data: {
+                list: response.data || [],
+                total: response.total || 0,
+              },
             },
             null,
             2

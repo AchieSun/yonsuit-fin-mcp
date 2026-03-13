@@ -280,7 +280,6 @@ export function validateEnv(): void {
     ENV_KEYS.YONYOU_APP_KEY,
     ENV_KEYS.YONYOU_APP_SECRET,
     ENV_KEYS.YONYOU_TENANT_ID,
-    ENV_KEYS.YONYOU_DATA_CENTER_DOMAIN,
   ];
 
   const missing: string[] = [];

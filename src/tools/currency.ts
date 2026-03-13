@@ -8,7 +8,7 @@
 import { z } from 'zod';
 import { BaseClient } from '../client';
 import { MCPTool, MCPToolResult, MCPContent } from '../types';
-import { Currency, PageResponse } from '../types/yonyou.types';
+import { Currency } from '../types/yonyou.types';
 import { logger } from '../utils';
 
 /**
@@ -104,10 +104,33 @@ export class CurrencyTools {
     try {
       logger.info('查询币种列表', { params });
 
-      const response = await this.client.post<PageResponse<Currency>>(
+      const requestBody: Record<string, unknown> = {
+        pageIndex: params.pageNum || 1,
+        pageSize: params.pageSize || 20,
+      };
+
+      if (params.code) {
+        requestBody.code = params.code;
+      }
+
+      if (params.name) {
+        requestBody.name = params.name;
+      }
+
+      if (params.enabled !== undefined) {
+        requestBody.enable = params.enabled ? 1 : 0;
+      }
+
+      const response = await this.client.post<{ code: string; message: string; data: { recordList: Currency[]; recordCount: number } }>(
         '/yonbip/digitalModel/currencytenant/batchQueryDetail',
-        params as Record<string, unknown>
+        requestBody as Record<string, unknown>
       );
+
+      let currencies = response.data?.recordList || [];
+
+      if (params.isBase !== undefined) {
+        currencies = currencies.filter((c) => c.isBase === params.isBase);
+      }
 
       const content: MCPContent[] = [
         {
@@ -116,7 +139,10 @@ export class CurrencyTools {
             {
               success: true,
               message: '查询币种列表成功',
-              data: response,
+              data: {
+                list: currencies,
+                total: currencies.length,
+              },
             },
             null,
             2

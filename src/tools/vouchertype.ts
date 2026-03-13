@@ -8,6 +8,7 @@
 import { z } from 'zod';
 import { BaseClient } from '../client';
 import { MCPTool, MCPToolResult, MCPContent } from '../types';
+import { API_PATHS } from '../config/constants';
 import { VoucherType } from '../types/yonyou.types';
 import { logger } from '../utils';
 
@@ -80,25 +81,17 @@ export class VoucherTypeTools {
     try {
       logger.info('查询凭证类型列表', { params });
 
-      // 尝试从缓存获取
-      const cacheKey = 'voucher_types_all';
-      const cached = this.cache.get(cacheKey);
-      let voucherTypes: VoucherType[];
+      const requestBody = {
+        pageIndex: 1,
+        pageSize: 100,
+      };
 
-      if (cached && Date.now() < cached.expiresAt) {
-        voucherTypes = cached.data;
-        logger.debug('使用缓存的凭证类型数据');
-      } else {
-        // 从API获取数据
-        const response = await this.client.get<VoucherType[]>('/yonbip/fi/vouchertype/list', {});
-        voucherTypes = response;
+      const response = await this.client.post<{ recordList: VoucherType[]; recordCount: number }>(
+        API_PATHS.VOUCHER_TYPE_LIST,
+        requestBody as Record<string, unknown>
+      );
 
-        // 更新缓存
-        this.cache.set(cacheKey, {
-          data: voucherTypes,
-          expiresAt: Date.now() + this.CACHE_TTL,
-        });
-      }
+      let voucherTypes = response.recordList || [];
 
       // 应用筛选条件
       let filtered = voucherTypes;
@@ -112,11 +105,11 @@ export class VoucherTypeTools {
       }
 
       if (params.shortName) {
-        filtered = filtered.filter((vt) => vt.shortName.includes(params.shortName!));
+        filtered = filtered.filter((vt) => vt.shortName && vt.shortName.includes(params.shortName!));
       }
 
       if (params.enabled !== undefined) {
-        filtered = filtered.filter((vt) => vt.enabled === params.enabled);
+        filtered = filtered.filter((vt) => vt.stopstatus !== params.enabled);
       }
 
       const content: MCPContent[] = [

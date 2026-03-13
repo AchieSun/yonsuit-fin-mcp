@@ -41,6 +41,7 @@ tests/
 
 # Temporary test files
 test-*.ts
+test-*.js
 
 # npm package
 *.tgz
@@ -50,3 +51,6 @@ Thumbs.db
 
 # TypeScript cache
 *.tsbuildinfo
+
+# Cache directory (domain and token cache)
+.yonyou-mcp/

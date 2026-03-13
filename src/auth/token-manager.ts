@@ -13,6 +13,7 @@ import { logger } from '../utils';
 import { appConfig, TOKEN_CONFIG } from '../config';
 import { TokenInfo, YonyouApiResponse, TokenData } from '../types';
 import { YonyouSignature } from '../utils/crypto';
+import { dataCenterService } from '../services';
 
 /**
  * Token缓存数据结构
@@ -68,10 +69,22 @@ export class TokenManager {
   /** 缓存键 */
   private readonly cacheKey: string;
 
+  /** Token URL */
+  private tokenUrl: string | null = null;
+
+  /** Gateway URL */
+  private gatewayUrl: string | null = null;
+
+  /** 租户ID */
+  private tenantId: string;
+
   /**
    * 构造函数
+   * @param tenantId 租户ID
+   * @param config 配置选项
    */
-  constructor(config?: Partial<TokenManagerConfig>) {
+  constructor(tenantId: string, config?: Partial<TokenManagerConfig>) {
+    this.tenantId = tenantId;
     this.config = {
       expiresIn: TOKEN_CONFIG.EXPIRES_IN,
       refreshAhead: TOKEN_CONFIG.REFRESH_AHEAD,
@@ -81,11 +94,10 @@ export class TokenManager {
       ...config,
     };
 
-    this.cacheKey = `token_${appConfig.yonyou.tenantId}`;
+    this.cacheKey = `token_${this.tenantId}`;
 
     // 初始化HTTP客户端
     this.httpClient = axios.create({
-      baseURL: appConfig.yonyou.baseUrl,
       timeout: appConfig.network.timeout,
       headers: {
         'Content-Type': 'application/json',
@@ -105,6 +117,7 @@ export class TokenManager {
     this.loadFromFileCache();
 
     logger.info('Token管理器初始化完成', {
+      tenantId: this.tenantId,
       expiresIn: this.config.expiresIn,
       refreshAhead: this.config.refreshAhead,
       enableFileCache: this.config.enableFileCache,
@@ -270,23 +283,31 @@ export class TokenManager {
     try {
       logger.info('开始获取新Token');
 
+      // 确保域名有效
+      await this.ensureDomainValid();
+
+      if (!this.tokenUrl) {
+        throw new Error('Token URL未初始化');
+      }
+
       const timestamp = Date.now();
 
-      // 构建请求参数（根据用友API文档，只需要三个参数）
-      // 参考：用友鉴权方法.md
-      const params: Record<string, unknown> = {
-        appKey: appConfig.yonyou.appKey,
-        timestamp,
-        signature: this.signature.generateTokenSignature(timestamp),
-      };
+      // 构建签名（根据用友API文档）
+      // 参数按名称排序，参数名称与参数值依次拼接
+      // 使用HmacSHA256计算签名，key为appSecret
+      // Base64编码后进行URL编码
+      const signatureBase64 = this.signature.generateTokenSignature(timestamp);
+      const signatureUrlEncoded = encodeURIComponent(signatureBase64);
+
+      // 直接拼接URL（避免axios params导致的双重编码问题）
+      const tokenApiPath = `${this.tokenUrl}/open-auth/selfAppAuth/base/v1/getAccessToken`;
+      const fullUrl = `${tokenApiPath}?appKey=${appConfig.yonyou.appKey}&timestamp=${timestamp}&signature=${signatureUrlEncoded}`;
+
+      logger.debug('Token请求URL', { url: tokenApiPath });
 
       // 调用用友授权API（GET请求）
-      // API路径：/iuap-api-auth/open-auth/selfAppAuth/base/v1/getAccessToken
       // 响应格式: {code: "00000", message: "成功！", data: {access_token: "xxx", expire: 7200}}
-      const response = await this.httpClient.get<YonyouApiResponse<TokenData>>(
-        '/iuap-api-auth/open-auth/selfAppAuth/base/v1/getAccessToken',
-        { params }
-      );
+      const response = await this.httpClient.get<YonyouApiResponse<TokenData>>(fullUrl);
 
       // 检查响应状态
       if (response.data.code !== '00000') {
@@ -470,7 +491,7 @@ export class TokenManager {
    * 获取缓存文件路径
    */
   private getCacheFilePath(): string {
-    return path.join(this.config.cacheDir, `token_${appConfig.yonyou.tenantId}.json`);
+    return path.join(this.config.cacheDir, `token_${this.tenantId}.json`);
   }
 
   /**
@@ -478,13 +499,48 @@ export class TokenManager {
    */
   private getCacheVersion(): string {
     // 使用配置的hash作为版本，配置变化时缓存失效
-    return `v1_${appConfig.yonyou.appKey}_${appConfig.yonyou.tenantId}`;
+    return `v1_${appConfig.yonyou.appKey}_${this.tenantId}`;
+  }
+
+  /**
+   * 确保域名有效
+   * 如果域名不存在，则从数据中心服务获取
+   */
+  private async ensureDomainValid(): Promise<void> {
+    if (this.tokenUrl && this.gatewayUrl) {
+      return; // 域名已存在，无需重新获取
+    }
+
+    const result = await dataCenterService.ensureDomainValid(this.tenantId);
+    this.tokenUrl = result.tokenUrl;
+    this.gatewayUrl = result.gatewayUrl;
+
+    logger.debug('域名验证完成', {
+      tokenUrl: this.tokenUrl,
+      gatewayUrl: this.gatewayUrl,
+    });
+  }
+
+  /**
+   * 获取Token URL
+   * @returns Token URL
+   */
+  getTokenUrl(): string | null {
+    return this.tokenUrl;
+  }
+
+  /**
+   * 获取Gateway URL
+   * @returns Gateway URL
+   */
+  getGatewayUrl(): string | null {
+    return this.gatewayUrl;
   }
 }
 
 /**
  * Token管理器实例
  */
-export const tokenManager = new TokenManager();
+export const tokenManager = new TokenManager(appConfig.yonyou.tenantId);
 
 export default tokenManager;

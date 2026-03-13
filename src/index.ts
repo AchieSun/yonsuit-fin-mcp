@@ -501,6 +501,10 @@ async function main(): Promise<void> {
 // 启动应用
 main();
 
+// 导出初始化模块
+export { initialize, getInitStatus, resetInitStatus } from './init';
+export type { InitStatus } from './init';
+
 // 导出模块（用于测试和外部使用）
 export { 
   MCPServer, 

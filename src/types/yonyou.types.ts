@@ -140,14 +140,28 @@ export interface Currency {
  * 凭证类型接口
  */
 export interface VoucherType {
+  /** 凭证类型ID */
+  id?: string;
   /** 凭证类型编码 */
   code: string;
   /** 凭证类型名称 */
   name: string;
   /** 凭证类型简称 */
-  shortName: string;
+  shortName?: string;
+  /** 凭证字 */
+  voucherstr?: string;
   /** 是否启用 */
-  enabled: boolean;
+  enabled?: boolean;
+  /** 停用状态 */
+  stopstatus?: boolean;
+  /** 是否总账 */
+  bisgl?: boolean;
+  /** 排序 */
+  sort?: number;
+  /** 创建时间 */
+  createTime?: string;
+  /** 修改时间 */
+  modifyTime?: string;
 }
 
 /**

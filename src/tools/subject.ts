@@ -123,9 +123,96 @@ export class AccountTools {
     try {
       logger.info('查询科目列表', { params });
 
-      const response = await this.client.get<PageResponse<Account>>(
+      const requestBody = {
+        fields: ['id', 'code', 'name', 'multidimension'],
+        pageIndex: params.pageNum || 1,
+        pageSize: params.pageSize || 20,
+        conditions: [] as Array<{ field: string; operator: string; value: string | number | boolean }>,
+      };
+
+      if (params.code) {
+        requestBody.conditions.push({
+          field: 'code',
+          operator: 'like',
+          value: params.code,
+        });
+      }
+
+      if (params.name) {
+        requestBody.conditions.push({
+          field: 'name',
+          operator: 'like',
+          value: params.name,
+        });
+      }
+
+      if (params.category) {
+        requestBody.conditions.push({
+          field: 'category',
+          operator: '=',
+          value: params.category,
+        });
+      }
+
+      if (params.type) {
+        requestBody.conditions.push({
+          field: 'type',
+          operator: '=',
+          value: params.type,
+        });
+      }
+
+      if (params.parentCode) {
+        requestBody.conditions.push({
+          field: 'parentCode',
+          operator: '=',
+          value: params.parentCode,
+        });
+      }
+
+      if (params.level !== undefined) {
+        requestBody.conditions.push({
+          field: 'level',
+          operator: '=',
+          value: params.level,
+        });
+      }
+
+      if (params.isLeaf !== undefined) {
+        requestBody.conditions.push({
+          field: 'isLeaf',
+          operator: '=',
+          value: params.isLeaf,
+        });
+      }
+
+      if (params.currency) {
+        requestBody.conditions.push({
+          field: 'currency',
+          operator: '=',
+          value: params.currency,
+        });
+      }
+
+      if (params.balanceDirection) {
+        requestBody.conditions.push({
+          field: 'balanceDirection',
+          operator: '=',
+          value: params.balanceDirection,
+        });
+      }
+
+      if (params.enabled !== undefined) {
+        requestBody.conditions.push({
+          field: 'enabled',
+          operator: '=',
+          value: params.enabled,
+        });
+      }
+
+      const response = await this.client.post<PageResponse<Account>>(
         API_PATHS.ACCOUNT_LIST,
-        params as Record<string, unknown>
+        requestBody as Record<string, unknown>
       );
 
       const content: MCPContent[] = [

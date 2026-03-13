@@ -20,6 +20,32 @@ export const API_BASE_URLS = {
 } as const;
 
 /**
+ * 数据中心API地址
+ */
+export const DATACENTER_API = {
+  /** 获取网关地址 */
+  GET_GATEWAY_ADDRESS: 'https://apigateway.yonyoucloud.com/open-auth/dataCenter/getGatewayAddress',
+} as const;
+
+/**
+ * 数据中心域名缓存配置
+ */
+export const DATACENTER_CACHE_CONFIG = {
+  /** 缓存目录 */
+  CACHE_DIR: '.yonyou-mcp/cache',
+  /** 缓存文件前缀 */
+  CACHE_FILE_PREFIX: 'datacenter-',
+  /** 缓存文件后缀 */
+  CACHE_FILE_SUFFIX: '.json',
+  /** 缓存有效期（秒）- 7天 */
+  CACHE_TTL: 7 * 24 * 60 * 60,
+  /** 最大重试次数 */
+  MAX_RETRIES: 3,
+  /** 重试延迟（毫秒） */
+  RETRY_DELAY: 1000,
+} as const;
+
+/**
  * 用友API路径配置
  */
 export const API_PATHS = {
@@ -372,6 +398,8 @@ export function calculateRetryDelay(retryCount: number): number {
 
 export default {
   API_BASE_URLS,
+  DATACENTER_API,
+  DATACENTER_CACHE_CONFIG,
   API_PATHS,
   TOKEN_CONFIG,
   HTTP_CONFIG,
