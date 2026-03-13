@@ -62,10 +62,10 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/AchieSun/yonsuit-fin-mcp.git"
   },
   "bugs": {
-    "url": ""
+    "url": "https://github.com/AchieSun/yonsuit-fin-mcp/issues"
   },
-  "homepage": ""
+  "homepage": "https://github.com/AchieSun/yonsuit-fin-mcp#readme"
 }
