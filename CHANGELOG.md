@@ -5,6 +5,13 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.0.2] - 2026-03-13
+
+### 修复
+
+- **npx兼容性修复**: 添加shebang (`#!/usr/bin/env node`) 到入口文件，确保npx命令可以正确执行
+- **TypeScript编译配置**: 修改 `tsconfig.build.json` 中的 `removeComments` 为 `false`，保留shebang
+
 ## [1.0.1] - 2026-03-13
 
 ### 修复

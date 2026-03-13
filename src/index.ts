@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /**
  * 用友做账MCP服务器 - 主入口
  * @module yonyou-mcp
