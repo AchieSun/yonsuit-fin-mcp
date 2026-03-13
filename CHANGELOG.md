@@ -5,6 +5,32 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.0.1] - 2026-03-13
+
+### 修复
+
+- **MCP兼容性修复**: 将环境变量检查从模块加载时延迟到运行时，解决MCP客户端启动失败的问题
+  - 将 `getRequiredEnv` 改为 `getEnv`，避免模块加载时立即检查环境变量
+  - 环境变量验证现在在 `validateConfig` 函数中执行
+- **包名更新**: 更新包名为 `@archiesun/yonsuit-fin-mcp`
+- **API路径修正**: 根据实际用友API文档更新了凭证相关API路径
+  - 凭证列表查询: `/yonbip/fi/ficloud/openapi/voucher/queryVouchers`
+  - 凭证详情查询: `/yonbip/EFI/openapi/voucher/queryVoucherById`
+  - 凭证保存: `/yonbip/fi/ficloud/openapi/voucher/addVoucher`
+  - 凭证类型查询: `/yonbip/AMP/yonbip-fi-epub/vouchertype/bill/list`
+
+### 改进
+
+- **内存泄漏修复**: 修复了缓存定时器的内存泄漏问题
+  - 添加了 `cacheCleanupTimer` 和 `destroy()` 方法
+- **配置优化**: 改进了环境变量的加载和验证逻辑
+- **错误处理**: 增强了错误处理和日志记录
+
+### 文档
+
+- 更新了 README.md 中的安装和使用说明
+- 添加了 MCP 配置示例
+
 ## [1.0.0] - 2026-03-11
 
 ### 新增

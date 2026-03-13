@@ -79,9 +79,9 @@ npm start
 ```json
 {
   "mcpServers": {
-    "yonyou": {
-      "command": "node",
-      "args": ["/path/to/yonyou-mcp/dist/index.js"],
+    "yonsuit-fin-mcp": {
+      "command": "npx",
+      "args": ["-y", "@archiesun/yonsuit-fin-mcp"],
       "env": {
         "YONYOU_APP_KEY": "your_app_key",
         "YONYOU_APP_SECRET": "your_app_secret",
@@ -91,6 +91,19 @@ npm start
     }
   }
 }
+```
+
+### 使用npx直接运行
+
+```bash
+npx -y @archiesun/yonsuit-fin-mcp
+```
+
+### 全局安装
+
+```bash
+npm install -g @archiesun/yonsuit-fin-mcp
+yonsuit-fin-mcp
 ```
 
 ### 其他MCP客户端
