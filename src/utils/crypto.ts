@@ -1,10 +1,11 @@
 /**
  * 加密工具模块
  * @module utils/crypto
+ * 
+ * 使用Node.js原生crypto模块实现加密功能
  */
 
 import * as crypto from 'crypto';
-import CryptoJS from 'crypto-js';
 import { logger } from './logger';
 
 /**
@@ -15,12 +16,13 @@ export class CryptoUtil {
    * HmacSHA256加密
    * @param message 待加密消息
    * @param secret 密钥
-   * @returns 加密后的字符串
+   * @returns 加密后的字符串（Hex格式）
    */
   static hmacSHA256(message: string, secret: string): string {
     try {
-      const hmac = CryptoJS.HmacSHA256(message, secret);
-      return hmac.toString(CryptoJS.enc.Hex);
+      const hmac = crypto.createHmac('sha256', secret);
+      hmac.update(message);
+      return hmac.digest('hex');
     } catch (error) {
       logger.error('HmacSHA256加密失败', error);
       throw new Error('HmacSHA256加密失败');
@@ -34,8 +36,7 @@ export class CryptoUtil {
    */
   static base64Encode(content: string): string {
     try {
-      const wordArray = CryptoJS.enc.Utf8.parse(content);
-      return CryptoJS.enc.Base64.stringify(wordArray);
+      return Buffer.from(content, 'utf8').toString('base64');
     } catch (error) {
       logger.error('Base64编码失败', error);
       throw new Error('Base64编码失败');
@@ -49,8 +50,7 @@ export class CryptoUtil {
    */
   static base64Decode(encoded: string): string {
     try {
-      const wordArray = CryptoJS.enc.Base64.parse(encoded);
-      return wordArray.toString(CryptoJS.enc.Utf8);
+      return Buffer.from(encoded, 'base64').toString('utf8');
     } catch (error) {
       logger.error('Base64解码失败', error);
       throw new Error('Base64解码失败');
@@ -97,8 +97,7 @@ export class CryptoUtil {
    */
   static sha256(content: string): string {
     try {
-      const hash = CryptoJS.SHA256(content);
-      return hash.toString(CryptoJS.enc.Hex).toUpperCase();
+      return crypto.createHash('sha256').update(content).digest('hex').toUpperCase();
     } catch (error) {
       logger.error('SHA256哈希失败', error);
       throw new Error('SHA256哈希失败');
@@ -112,8 +111,7 @@ export class CryptoUtil {
    */
   static md5(content: string): string {
     try {
-      const hash = CryptoJS.MD5(content);
-      return hash.toString(CryptoJS.enc.Hex).toUpperCase();
+      return crypto.createHash('md5').update(content).digest('hex').toUpperCase();
     } catch (error) {
       logger.error('MD5哈希失败', error);
       throw new Error('MD5哈希失败');
@@ -306,17 +304,16 @@ export class YonyouSignature {
   /**
    * 生成签名（符合用友API规范）
    * @param content 待签名内容
-   * @returns 签名字符串
+   * @returns 签名字符串（URL编码后的Base64）
    */
   generateSignature(content: string): string {
     try {
       // 1. 使用HmacSHA256计算签名
-      const hmac = CryptoJS.HmacSHA256(content, this.appSecret);
+      const hmac = crypto.createHmac('sha256', this.appSecret);
+      hmac.update(content);
+      const base64Signature = hmac.digest('base64');
       
-      // 2. Base64编码
-      const base64Signature = CryptoJS.enc.Base64.stringify(hmac);
-      
-      // 3. URL编码
+      // 2. URL编码
       const urlEncodedSignature = encodeURIComponent(base64Signature);
 
       logger.debug('签名生成详情', {

@@ -5,6 +5,24 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本号遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [1.0.3] - 2026-03-13
+
+### 优化
+
+- **移除crypto-js依赖**: 使用Node.js原生crypto模块替代crypto-js库
+  - 减少约500KB包体积
+  - 提高运行效率（原生模块更快）
+  - 重构所有加密方法：HmacSHA256、SHA256、MD5、Base64编码/解码
+- **统一错误处理**: 创建统一的错误处理工具函数
+  - 新增 `handleToolError` 函数用于统一处理工具错误
+  - 新增 `handleToolSuccess` 函数用于统一返回成功响应
+  - 提高代码可维护性和一致性
+
+### 移除
+
+- 移除 `crypto-js` 依赖
+- 移除 `@types/crypto-js` 依赖
+
 ## [1.0.2] - 2026-03-13
 
 ### 修复

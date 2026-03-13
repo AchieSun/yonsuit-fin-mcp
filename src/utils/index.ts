@@ -6,6 +6,7 @@
 export * from './logger';
 export * from './crypto';
 export * from './url';
+export * from './error-handler';
 
 /**
  * 延迟函数
