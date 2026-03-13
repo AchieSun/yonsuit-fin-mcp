@@ -1,9 +1,10 @@
 {
-  "name": "@achiesun/yonsuit-fin-mcp",
+  "name": "@archiesun/yonsuit-fin-mcp",
   "version": "1.0.0",
   "description": "用友做账MCP服务器 - 基于Model Context Protocol的用友财务系统对接服务",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "private": false,
   "bin": {
     "yonsuit-fin-mcp": "dist/index.js"
   },

@@ -210,11 +210,11 @@ export const envConfig: EnvConfig = {
   // 用友API配置
   yonyou: {
     baseUrl: getEnv(ENV_KEYS.YONYOU_API_BASE_URL, 'https://c1.yonyoucloud.com'),
-    appKey: getRequiredEnv(ENV_KEYS.YONYOU_APP_KEY),
-    appSecret: getRequiredEnv(ENV_KEYS.YONYOU_APP_SECRET),
-    tenantId: getRequiredEnv(ENV_KEYS.YONYOU_TENANT_ID),
+    appKey: getEnv(ENV_KEYS.YONYOU_APP_KEY, ''),
+    appSecret: getEnv(ENV_KEYS.YONYOU_APP_SECRET, ''),
+    tenantId: getEnv(ENV_KEYS.YONYOU_TENANT_ID, ''),
     userId: getEnv(ENV_KEYS.YONYOU_USER_ID, ''),
-    dataCenterDomain: getRequiredEnv(ENV_KEYS.YONYOU_DATA_CENTER_DOMAIN),
+    dataCenterDomain: getEnv(ENV_KEYS.YONYOU_DATA_CENTER_DOMAIN, ''),
     authType: getEnumEnv(ENV_KEYS.YONYOU_AUTH_TYPE, ['app_auth', 'user_auth'] as const, 'app_auth'),
     tokenCacheTtl: getNumberEnv(ENV_KEYS.YONYOU_TOKEN_CACHE_TTL, 7200),
     tokenRefreshAhead: getNumberEnv(ENV_KEYS.YONYOU_TOKEN_REFRESH_AHEAD, 300),
